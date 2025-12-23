@@ -3,16 +3,22 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Upload, Loader2, CheckCircle2, XCircle, Download } from "lucide-react"
+import { Upload, Loader2, CheckCircle2, XCircle, Download, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import Link from "next/link"
 
 const WEBHOOK_URL = "/api/upload"
 
 type UploadStatus = "idle" | "uploading" | "success" | "error"
 
-export default function PosterUpload() {
+interface PosterUploadProps {
+  userId?: string
+  credits?: number
+}
+
+export default function PosterUpload({ userId, credits = 0 }: PosterUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [status, setStatus] = useState<UploadStatus>("idle")
@@ -60,6 +66,11 @@ export default function PosterUpload() {
 
   const handleUpload = async () => {
     if (!selectedFile) return
+    
+    if (credits <= 0) {
+      setErrorMessage("عذراً، لقد نفذ رصيدك. يرجى شحن الرصيد للمتابعة.")
+      return
+    }
 
     setStatus("uploading")
     setErrorMessage("")
@@ -70,6 +81,7 @@ export default function PosterUpload() {
       formData.append("image", selectedFile)
       formData.append("filename", selectedFile.name)
       formData.append("timestamp", new Date().toISOString())
+      if (userId) formData.append("userId", userId)
 
       console.log("[v0] Sending request to webhook...")
 
@@ -82,7 +94,8 @@ export default function PosterUpload() {
       console.log("[v0] Response headers:", Object.fromEntries(response.headers.entries()))
 
       if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`)
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Upload failed: ${response.statusText}`)
       }
 
       const contentType = response.headers.get("content-type")
@@ -242,6 +255,17 @@ export default function PosterUpload() {
             <Alert variant="destructive">
               <XCircle className="h-4 w-4" />
               <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+          
+          {/* Credits Warning */}
+          {credits <= 0 && status === "idle" && (
+             <Alert variant="destructive" className="bg-destructive/10 border-destructive/20">
+              <Lock className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between w-full">
+                <span>لقد نفذ رصيدك المجاني.</span>
+                <Link href="/pricing" className="font-bold underline">اشحن رصيدك الآن</Link>
+              </AlertDescription>
             </Alert>
           )}
 

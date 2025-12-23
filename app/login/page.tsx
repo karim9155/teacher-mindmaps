@@ -6,28 +6,44 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Lock } from "lucide-react"
+import { Lock, Loader2 } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [isSignUp, setIsSignUp] = useState(false)
   const router = useRouter()
+  const supabase = createClient()
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (username === "ilef" && password === "9155") {
-      // Set a cookie to indicate the user is logged in
-      // Expires in 7 days
-      const expires = new Date()
-      expires.setDate(expires.getDate() + 7)
-      document.cookie = `auth=true; path=/; expires=${expires.toUTCString()}`
-      
-      router.push("/")
-      router.refresh()
-    } else {
-      setError("اسم المستخدم أو كلمة المرور غير صحيحة")
+    setLoading(true)
+    setError("")
+
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        })
+        if (error) throw error
+        setError("تم إنشاء الحساب بنجاح! يرجى التحقق من بريدك الإلكتروني.")
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+        if (error) throw error
+        router.push("/dashboard")
+        router.refresh()
+      }
+    } catch (err: any) {
+      setError(err.message === "Invalid login credentials" ? "البريد الإلكتروني أو كلمة المرور غير صحيحة" : err.message)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -40,23 +56,28 @@ export default function LoginPage() {
               <Lock className="w-6 h-6 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">تسجيل الدخول</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            {isSignUp ? "إنشاء حساب جديد" : "تسجيل الدخول"}
+          </CardTitle>
           <CardDescription>
-            الرجاء إدخال بيانات الاعتماد الخاصة بك للمتابعة
+            {isSignUp 
+              ? "أنشئ حساباً للحصول على ملصقين مجاناً" 
+              : "الرجاء إدخال بياناتك للمتابعة"}
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleAuth}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">اسم المستخدم</Label>
+              <Label htmlFor="email">البريد الإلكتروني</Label>
               <Input
-                id="username"
-                type="text"
-                placeholder="أدخل اسم المستخدم"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="text-right"
                 dir="rtl"
+                required
               />
             </div>
             <div className="space-y-2">
@@ -64,22 +85,35 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="أدخل كلمة المرور"
+                placeholder="******"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="text-right"
                 dir="rtl"
+                required
+                minLength={6}
               />
             </div>
             {error && (
-              <div className="text-sm text-destructive text-center font-medium">
+              <div className={`text-sm text-center font-medium ${error.includes("بنجاح") ? "text-green-600" : "text-destructive"}`}>
                 {error}
               </div>
             )}
           </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full">
-              دخول
+          <CardFooter className="flex flex-col gap-4">
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSignUp ? "إنشاء حساب" : "دخول"}
+            </Button>
+            <Button 
+              type="button" 
+              variant="link" 
+              className="text-sm text-muted-foreground"
+              onClick={() => setIsSignUp(!isSignUp)}
+            >
+              {isSignUp 
+                ? "لديك حساب بالفعل؟ تسجيل الدخول" 
+                : "ليس لديك حساب؟ أنشئ حساباً جديداً"}
             </Button>
           </CardFooter>
         </form>

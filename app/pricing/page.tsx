@@ -85,7 +85,7 @@ export default function PricingPage() {
                   )}
                 </div>
                 <div className="text-sm font-medium text-primary mt-2">
-                  {pack.posters} ملصق ({Number(pack.price) / pack.posters * 1000} مليم للملصق)
+                  {pack.posters} ملصق ({Math.round(Number(pack.price) / pack.posters * 1000)} مليم للملصق)
                 </div>
               </CardHeader>
               <CardContent className="flex-1">

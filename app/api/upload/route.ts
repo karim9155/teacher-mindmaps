@@ -12,6 +12,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const formData = await request.formData()
+    const mode = formData.get("mode") as string || "poster"
+
     // Define costs
     const COST_PER_ACTION = {
       poster: 1,
@@ -29,9 +32,6 @@ export async function POST(request: NextRequest) {
     if (!profile || profile.credits < cost) {
       return NextResponse.json({ error: `Insufficient credits. You need ${cost} credits.` }, { status: 403 })
     }
-
-    const formData = await request.formData()
-    const mode = formData.get("mode") as string || "poster"
     
     console.log(`[API] Forwarding request to n8n webhook (Mode: ${mode})...`)
 

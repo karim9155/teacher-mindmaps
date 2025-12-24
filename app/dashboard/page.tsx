@@ -1,10 +1,13 @@
-import PosterUpload from "@/components/poster-upload"
+import ImageTool from "@/components/image-tool"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { CreditCard, History } from "lucide-react"
 import LogoutButton from "@/components/logout-button"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+import { Badge } from "@/components/ui/badge"
 
 export default async function Dashboard() {
   const supabase = await createClient()
@@ -32,10 +35,13 @@ export default async function Dashboard() {
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">مصمم الملصقات للمعلمين</h1>
-            <p className="text-muted-foreground mt-1">
-              أهلاً بك، لديك {profile?.credits ?? 0} رصيد متبقي
-            </p>
+            <h1 className="text-2xl font-bold text-foreground">أدوات المعلم الذكية</h1>
+            <div className="flex items-center gap-2 mt-2">
+              <p className="text-muted-foreground">أهلاً بك،</p>
+              <Badge variant="secondary" className="text-lg px-3 py-1">
+                {profile?.credits ?? 0} رصيد
+              </Badge>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/dashboard/history">
@@ -55,7 +61,18 @@ export default async function Dashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-12">
-        <PosterUpload userId={user.id} credits={profile?.credits ?? 0} />
+        <Tabs defaultValue="poster" className="w-full max-w-4xl mx-auto" dir="rtl">
+          <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsTrigger value="poster">مصمم الملصقات</TabsTrigger>
+            <TabsTrigger value="watermark">إزالة العلامة المائية</TabsTrigger>
+          </TabsList>
+          <TabsContent value="poster">
+            <ImageTool userId={user.id} credits={profile?.credits ?? 0} mode="poster" />
+          </TabsContent>
+          <TabsContent value="watermark">
+            <ImageTool userId={user.id} credits={profile?.credits ?? 0} mode="watermark" />
+          </TabsContent>
+        </Tabs>
       </main>
 
       <footer className="border-t border-border mt-20 py-8">

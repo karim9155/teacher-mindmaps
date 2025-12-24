@@ -1,9 +1,13 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, CreditCard, Home } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import LogoutButton from "@/components/logout-button"
+import DownloadButton from "@/components/download-button"
+
+import { Badge } from "@/components/ui/badge"
 
 export default async function HistoryPage() {
   const supabase = await createClient()
@@ -12,6 +16,12 @@ export default async function HistoryPage() {
   if (!user) {
     redirect("/login")
   }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("credits")
+    .eq("id", user.id)
+    .single()
 
   const { data: generations } = await supabase
     .from("generations")
@@ -22,13 +32,30 @@ export default async function HistoryPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-6 flex items-center gap-4">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="icon">
-              <ArrowRight className="w-5 h-5" />
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-bold text-foreground">سجل التصاميم</h1>
+        <div className="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">سجل التصاميم</h1>
+            <div className="flex items-center gap-2 mt-2">
+              <p className="text-muted-foreground">أهلاً بك،</p>
+              <Badge variant="secondary" className="text-lg px-3 py-1">
+                {profile?.credits ?? 0} رصيد
+              </Badge>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="icon" title="الرئيسية">
+                <Home className="w-5 h-5" />
+              </Button>
+            </Link>
+            <Link href="/pricing">
+              <Button className="gap-2" variant={(profile?.credits ?? 0) > 0 ? "outline" : "default"}>
+                <CreditCard className="w-4 h-4" />
+                شراء رصيد
+              </Button>
+            </Link>
+            <LogoutButton />
+          </div>
         </div>
       </header>
 
@@ -44,10 +71,14 @@ export default async function HistoryPage() {
                     className="object-cover w-full h-full"
                   />
                 </div>
-                <CardContent className="p-4">
+                <CardContent className="p-4 flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
                     {new Date(gen.created_at).toLocaleDateString("ar-TN")}
                   </p>
+                  <DownloadButton 
+                    url={gen.image_url} 
+                    filename={`poster-${new Date(gen.created_at).getTime()}.png`}
+                  />
                 </CardContent>
               </Card>
             ))}

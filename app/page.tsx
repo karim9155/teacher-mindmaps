@@ -1,9 +1,31 @@
 "use client"
 
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Check, ArrowLeft } from "lucide-react"
+import { Check, ArrowLeft, Phone } from "lucide-react"
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+
+function ContactDialog() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <button className="hover:text-primary focus:outline-none">اتصل بنا</button>
+      </DialogTrigger>
+      <DialogContent className="max-w-xs text-center">
+        <DialogHeader>
+          <DialogTitle>اتصل بنا</DialogTitle>
+          <DialogDescription>لأي استفسار أو دعم، يمكنك التواصل معنا عبر الرقم التالي:</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col items-center gap-2 py-4">
+          <Phone className="w-8 h-8 text-primary mx-auto" />
+          <span className="text-2xl font-bold text-foreground select-all">26620734</span>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 export default function LandingPage() {
   const packs = [

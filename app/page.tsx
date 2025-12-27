@@ -142,7 +142,7 @@ export default function LandingPage() {
             <Link href="#" className="hover:text-primary">شروط الاستخدام</Link>
             {/* Contact Us Dialog */}
             <ContactDialog />
-          // ContactDialog component for showing the contact number in a popup
+
           import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
           import { Phone } from "lucide-react"
 

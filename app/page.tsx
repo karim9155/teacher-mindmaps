@@ -140,7 +140,14 @@ export default function LandingPage() {
           <div className="flex justify-center gap-6">
             <Link href="#" className="hover:text-primary">سياسة الخصوصية</Link>
             <Link href="#" className="hover:text-primary">شروط الاستخدام</Link>
-            <Link href="#" className="hover:text-primary">اتصل بنا</Link>
+            <button
+              type="button"
+              className="hover:text-primary underline bg-transparent border-0 cursor-pointer"
+              style={{ background: 'none', padding: 0, font: 'inherit' }}
+              onClick={() => window.alert("26620734")}
+            >
+              اتصل بنا
+            </button>
           </div>
         </div>
       </footer>

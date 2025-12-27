@@ -33,9 +33,9 @@ export default async function HistoryPage() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">سجل التصاميم</h1>
-            <div className="flex items-center gap-2 mt-2">
+          <div className="flex flex-col items-start md:flex-row md:items-center gap-4">
+            <img src="/logo.png" alt="مصمم الملصقات للمعلمين" className="h-12 w-auto" />
+            <div className="flex items-center gap-2 mt-2 md:mt-0">
               <p className="text-muted-foreground">أهلاً بك،</p>
               <Badge variant="secondary" className="text-lg px-3 py-1">
                 {profile?.credits ?? 0} رصيد

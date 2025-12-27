@@ -113,9 +113,36 @@ export default function PricingList() {
   )
 }
 
+
+import { createClient } from "@/lib/supabase/client"
+
 function PaymentDialog({ packName, price }: { packName: string, price: string }) {
   const [step, setStep] = useState(1)
-  
+  const [phone, setPhone] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState("")
+  const supabase = createClient()
+
+  const handleSavePhone = async () => {
+    setLoading(true)
+    setError("")
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) throw new Error("يجب تسجيل الدخول أولاً")
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ phone })
+        .eq("id", user.id)
+      if (updateError) throw updateError
+      setSuccess(true)
+    } catch (err: any) {
+      setError(err.message || "حدث خطأ ما")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -128,15 +155,15 @@ function PaymentDialog({ packName, price }: { packName: string, price: string })
             اتبع الخطوات التالية لإتمام عملية الدفع
           </DialogDescription>
         </DialogHeader>
-        
-        {step === 1 ? (
+        {success ? (
+          <div className="py-8 text-center text-green-600 font-bold">تم استلام رقم الهاتف! سيتم تفعيل الباقة خلال دقائق.</div>
+        ) : step === 1 ? (
           <div className="space-y-6 py-4">
             <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
               <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200 text-center">
                 المبلغ المطلوب: <span className="text-lg font-bold">{price} دينار</span>
               </p>
             </div>
-            
             <div className="space-y-4">
               <div className="flex items-center gap-4 p-4 border rounded-lg">
                 <div className="bg-primary/10 p-3 rounded-full">
@@ -144,11 +171,10 @@ function PaymentDialog({ packName, price }: { packName: string, price: string })
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">أرسل المبلغ عبر D17</p>
-                  <p className="text-sm text-muted-foreground">إلى الرقم: <span className="font-bold text-foreground select-all">55123456</span></p>
+                  <p className="text-sm text-muted-foreground">إلى الرقم: <span className="font-bold text-foreground select-all">93362462</span></p>
                 </div>
               </div>
             </div>
-
             <Button onClick={() => setStep(2)} className="w-full">
               لقد قمت بإرسال المبلغ
             </Button>
@@ -157,17 +183,36 @@ function PaymentDialog({ packName, price }: { packName: string, price: string })
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>رقم الهاتف الذي أرسلت منه</Label>
-              <Input placeholder="مثال: 55123456" type="tel" className="text-right" />
+              <Input
+                placeholder="مثال: 55123456"
+                type="tel"
+                className="text-right"
+                value={phone}
+                onChange={e => {
+                  // Only allow numbers and max 8 digits
+                  const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 8)
+                  setPhone(value)
+                }}
+                disabled={loading}
+                maxLength={8}
+                minLength={8}
+                pattern="[0-9]{8}"
+                inputMode="numeric"
+              />
             </div>
-            <div className="space-y-2">
-              <Label>رمز المعاملة (Code de transaction)</Label>
-              <Input placeholder="أدخل الرمز الموجود في رسالة التأكيد" className="text-right" />
-            </div>
+            {error && <div className="text-red-600 text-sm text-center">{error}</div>}
             <div className="pt-4">
-              <Button className="w-full" onClick={() => alert("تم استلام طلبك! سيتم تفعيل الباقة خلال دقائق.")}>
-                تأكيد الدفع
+              <Button
+                className="w-full"
+                onClick={handleSavePhone}
+                disabled={
+                  loading ||
+                  !/^\d{8}$/.test(phone) // Must be exactly 8 digits
+                }
+              >
+                {loading ? "...جاري الحفظ" : "تأكيد الدفع"}
               </Button>
-              <Button variant="ghost" onClick={() => setStep(1)} className="w-full mt-2">
+              <Button variant="ghost" onClick={() => setStep(1)} className="w-full mt-2" disabled={loading}>
                 رجوع
               </Button>
             </div>

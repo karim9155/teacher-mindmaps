@@ -52,9 +52,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-3 bg-primary/10 rounded-full">
-              <Lock className="w-6 h-6 text-primary" />
-            </div>
+            <img src="/logo.png" alt="مصمم الملصقات للمعلمين" className="h-24 w-auto mx-auto" />
           </div>
           <CardTitle className="text-2xl font-bold">
             {isSignUp ? "إنشاء حساب جديد" : "تسجيل الدخول"}

@@ -44,10 +44,7 @@ export default function LandingPage() {
       <header className="border-b border-border bg-card/50 backdrop-blur sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground font-bold">
-              م
-            </div>
-            <span className="font-bold text-lg hidden sm:inline-block">مصمم الملصقات</span>
+            <img src="/logo.png" alt="مصمم الملصقات للمعلمين" className="h-12 w-auto" />
           </div>
           <div className="flex gap-4">
             <Link href="/login">

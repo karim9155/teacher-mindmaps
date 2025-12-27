@@ -140,14 +140,31 @@ export default function LandingPage() {
           <div className="flex justify-center gap-6">
             <Link href="#" className="hover:text-primary">سياسة الخصوصية</Link>
             <Link href="#" className="hover:text-primary">شروط الاستخدام</Link>
-            <button
-              type="button"
-              className="hover:text-primary underline bg-transparent border-0 cursor-pointer"
-              style={{ background: 'none', padding: 0, font: 'inherit' }}
-              onClick={() => window.alert("26620734")}
-            >
-              اتصل بنا
-            </button>
+            {/* Contact Us Dialog */}
+            <ContactDialog />
+          // ContactDialog component for showing the contact number in a popup
+          import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+          import { Phone } from "lucide-react"
+
+          function ContactDialog() {
+            return (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <button className="hover:text-primary focus:outline-none">اتصل بنا</button>
+                </DialogTrigger>
+                <DialogContent className="max-w-xs text-center">
+                  <DialogHeader>
+                    <DialogTitle>اتصل بنا</DialogTitle>
+                    <DialogDescription>لأي استفسار أو دعم، يمكنك التواصل معنا عبر الرقم التالي:</DialogDescription>
+                  </DialogHeader>
+                  <div className="flex flex-col items-center gap-2 py-4">
+                    <Phone className="w-8 h-8 text-primary mx-auto" />
+                    <span className="text-2xl font-bold text-foreground select-all">26620734</span>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )
+          }
           </div>
         </div>
       </footer>

@@ -6,11 +6,18 @@ const WEBHOOK_URL = "https://karim.n8nkk.tech/webhook/c924151b-1474-4cf7-af1b-48
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError) {
+      console.error("[API] Auth error:", authError)
+      return NextResponse.json({ error: "Authentication failed", details: authError.message }, { status: 401 })
+    }
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    console.log("[API] User authenticated:", user.id)
 
     const formData = await request.formData()
     const mode = formData.get("mode") as string || "poster"
@@ -23,16 +30,23 @@ export async function POST(request: NextRequest) {
     const cost = COST_PER_ACTION[mode as keyof typeof COST_PER_ACTION] || 1
 
     // Check credits
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("credits")
       .eq("id", user.id)
       .single()
 
+    if (profileError) {
+      console.error("[API] Profile fetch error:", profileError)
+      return NextResponse.json({ error: "Failed to fetch user profile", details: profileError.message }, { status: 500 })
+    }
+
     if (!profile || profile.credits < cost) {
+      console.log("[API] Insufficient credits. User has:", profile?.credits, "needs:", cost)
       return NextResponse.json({ error: `Insufficient credits. You need ${cost} credits.` }, { status: 403 })
     }
     
+    console.log(`[API] User has ${profile.credits} credits, proceeding with ${mode} (cost: ${cost})`)
     console.log(`[API] Forwarding request to n8n webhook (Mode: ${mode})...`)
 
     const response = await fetch(WEBHOOK_URL, {
@@ -94,24 +108,40 @@ export async function POST(request: NextRequest) {
       })
 
     if (uploadError) {
-        console.error("Upload error:", uploadError)
+        console.error("[API] Supabase upload error:", uploadError)
+        return NextResponse.json({ error: "Failed to upload image", details: uploadError.message }, { status: 500 })
     } else {
+        console.log("[API] Upload successful:", filename)
         // Get Public URL
         const { data: { publicUrl } } = supabase
           .storage
           .from('posters')
           .getPublicUrl(filename)
 
+        console.log("[API] Public URL:", publicUrl)
+
         // Save to history
-        await supabase.from('generations').insert({
+        const { error: insertError } = await supabase.from('generations').insert({
             user_id: user.id,
             image_url: publicUrl,
             prompt: mode === 'watermark' ? 'Watermark Removal' : 'Generated Poster'
         })
+
+        if (insertError) {
+          console.error("[API] Failed to save to history:", insertError)
+          // Don't fail the request if history insert fails
+        }
     }
 
     // Deduct credit
-    await supabase.rpc("decrement_credits", { user_id: user.id, amount: cost })
+    const { error: rpcError } = await supabase.rpc("decrement_credits", { user_id: user.id, amount: cost })
+    
+    if (rpcError) {
+      console.error("[API] Failed to decrement credits:", rpcError)
+      return NextResponse.json({ error: "Failed to deduct credits", details: rpcError.message }, { status: 500 })
+    }
+
+    console.log("[API] Credits decremented successfully")
 
     // Return the response with the correct content type
     return new NextResponse(blob, {
@@ -122,8 +152,9 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("[API] Error forwarding request:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Internal Server Error", details: errorMessage },
       { status: 500 }
     )
   }

@@ -18,12 +18,12 @@ export type ToolMode = "poster" | "watermark"
 
 // Grade-specific prompts with varying complexity
 const GRADE_PROMPTS = {
-  1: "تحويل هذا الملصق المرسوم يدوياً إلى تصميم ملون وبسيط. استخدم خطوط كبيرة وواضحة، ألوان زاهية ومبهجة، ورسومات كرتونية بسيطة. النص يجب أن يكون قصير ومباشر مع رسومات تعليمية واضحة تناسب الصف الأول الابتدائي.",
-  2: "تحويل هذا الملصق المرسوم يدوياً إلى تصميم جذاب. استخدم خطوط واضحة بحجم كبير، ألوان متنوعة ومشرقة، ورسومات توضيحية بسيطة وممتعة. أضف عناصر بصرية مرحة تناسب طلاب الصف الثاني مع الحفاظ على وضوح المعلومات.",
-  3: "تحويل هذا الملصق المرسوم يدوياً إلى تصميم تعليمي متوازن. استخدم خطوط متوسطة الحجم واضحة، مزيج من الألوان المنسقة، ورسومات توضيحية أكثر تفصيلاً. أضف عناصر تنظيمية بسيطة مثل إطارات أو خلفيات ملونة تناسب الصف الثالث.",
-  4: "تحويل هذا الملصق المرسوم يدوياً إلى تصميم احترافي منظم. استخدم خطوط متعددة بأحجام مناسبة، لوحة ألوان متناسقة، ورسومات توضيحية تفصيلية. نظم المحتوى في أقسام واضحة مع استخدام عناوين فرعية ونقاط مرقمة تناسب الصف الرابع.",
-  5: "تحويل هذا الملصق المرسوم يدوياً إلى تصميم متقدم ومتطور. استخدم تسلسل هرمي واضح للخطوط، ألوان احترافية مع تدرجات خفيفة، ورسومات توضيحية معقدة. أضف عناصر مثل رسوم بيانية، جداول، أو مخططات عند الحاجة لتناسب مستوى الصف الخامس.",
-  6: "تحويل هذا الملصق المرسوم يدوياً إلى تصميم احترافي متكامل. استخدم تصميم متعدد الطبقات مع خطوط أنيقة ومتنوعة، لوحة ألوان متقدمة مع تأثيرات بصرية، ورسومات توضيحية احترافية ومعقدة. نظم المحتوى بشكل منطقي مع إضافة عناصر مثل إنفوجرافيك، رسوم بيانية تفاعلية، وتقسيمات محترفة تناسب طلاب الصف السادس المتقدمين."
+  1: "TARGET AUDIENCE: Grade 1 (Early Readers). STYLE: Extremely simple and high contrast. FONTS: Massive, rounded, and clear. COLORS: Bright primary colors. ILLUSTRATIONS: Cute, basic cartoons that directly match the text. LAYOUT: Open, spacious, and uncluttered.",
+  2: "TARGET AUDIENCE: Grade 2. STYLE: Fun and attractive. FONTS: Large and legible. COLORS: Varied and cheerful. ILLUSTRATIONS: Playful characters and elements. LAYOUT: Clear but with more visual engagement.",
+  3: "TARGET AUDIENCE: Grade 3. STYLE: Balanced and educational. FONTS: Medium-large, clear standard fonts. COLORS: Coordinated and harmonious. ILLUSTRATIONS: Detailed and descriptive. LAYOUT: Use distinct frames or colored boxes to group concepts.",
+  4: "TARGET AUDIENCE: Grade 4. STYLE: Organized and structured. FONTS: Clear hierarchy (Headings vs Body). COLORS: Consistent, less saturated palette. ILLUSTRATIONS: Informative rather than purely decorative. LAYOUT: Use sections, subheadings, and bullet points.",
+  5: "TARGET AUDIENCE: Grade 5. STYLE: Academic and sophisticated. FONTS: Professional hierarchy. COLORS: Refined, using gradients or muted tones. VISUALS: Use charts, tables, or diagrams where possible. LAYOUT: Structured grid or logical flow.",
+  6: "TARGET AUDIENCE: Grade 6 (Pre-Teen). STYLE: Professional Infographic. OVERRIDE default 'cute' styles. FONTS: Modern, elegant typography. COLORS: Mature, advanced palette. VISUALS: Complex infographics, flowcharts, or icons. LAYOUT: Sleek, multi-layered design."
 }
 
 interface ImageToolProps {

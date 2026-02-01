@@ -7,12 +7,24 @@ import { Upload, Loader2, CheckCircle2, XCircle, Download, Lock } from "lucide-r
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
 import Link from "next/link"
 
 const WEBHOOK_URL = "/api/upload"
 
 type UploadStatus = "idle" | "uploading" | "success" | "error"
 export type ToolMode = "poster" | "watermark"
+
+// Grade-specific prompts with varying complexity
+const GRADE_PROMPTS = {
+  1: "تحويل هذا الملصق المرسوم يدوياً إلى تصميم ملون وبسيط. استخدم خطوط كبيرة وواضحة، ألوان زاهية ومبهجة، ورسومات كرتونية بسيطة. النص يجب أن يكون قصير ومباشر مع رسومات تعليمية واضحة تناسب الصف الأول الابتدائي.",
+  2: "تحويل هذا الملصق المرسوم يدوياً إلى تصميم جذاب. استخدم خطوط واضحة بحجم كبير، ألوان متنوعة ومشرقة، ورسومات توضيحية بسيطة وممتعة. أضف عناصر بصرية مرحة تناسب طلاب الصف الثاني مع الحفاظ على وضوح المعلومات.",
+  3: "تحويل هذا الملصق المرسوم يدوياً إلى تصميم تعليمي متوازن. استخدم خطوط متوسطة الحجم واضحة، مزيج من الألوان المنسقة، ورسومات توضيحية أكثر تفصيلاً. أضف عناصر تنظيمية بسيطة مثل إطارات أو خلفيات ملونة تناسب الصف الثالث.",
+  4: "تحويل هذا الملصق المرسوم يدوياً إلى تصميم احترافي منظم. استخدم خطوط متعددة بأحجام مناسبة، لوحة ألوان متناسقة، ورسومات توضيحية تفصيلية. نظم المحتوى في أقسام واضحة مع استخدام عناوين فرعية ونقاط مرقمة تناسب الصف الرابع.",
+  5: "تحويل هذا الملصق المرسوم يدوياً إلى تصميم متقدم ومتطور. استخدم تسلسل هرمي واضح للخطوط، ألوان احترافية مع تدرجات خفيفة، ورسومات توضيحية معقدة. أضف عناصر مثل رسوم بيانية، جداول، أو مخططات عند الحاجة لتناسب مستوى الصف الخامس.",
+  6: "تحويل هذا الملصق المرسوم يدوياً إلى تصميم احترافي متكامل. استخدم تصميم متعدد الطبقات مع خطوط أنيقة ومتنوعة، لوحة ألوان متقدمة مع تأثيرات بصرية، ورسومات توضيحية احترافية ومعقدة. نظم المحتوى بشكل منطقي مع إضافة عناصر مثل إنفوجرافيك، رسوم بيانية تفاعلية، وتقسيمات محترفة تناسب طلاب الصف السادس المتقدمين."
+}
 
 interface ImageToolProps {
   userId?: string
@@ -27,6 +39,7 @@ export default function ImageTool({ userId, credits = 0, mode }: ImageToolProps)
   const [resultImageUrl, setResultImageUrl] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string>("")
   const [isDragging, setIsDragging] = useState(false)
+  const [selectedGrade, setSelectedGrade] = useState<string>("3") // Default to grade 3
 
   const isPosterMode = mode === "poster"
   
@@ -109,6 +122,15 @@ export default function ImageTool({ userId, credits = 0, mode }: ImageToolProps)
       formData.append("timestamp", new Date().toISOString())
       formData.append("mode", mode) // Send the mode to the API
       if (userId) formData.append("userId", userId)
+      
+      // Add grade-specific prompt for poster mode
+      if (isPosterMode && selectedGrade) {
+        const gradePrompt = GRADE_PROMPTS[selectedGrade as keyof typeof GRADE_PROMPTS]
+        if (gradePrompt) {
+          formData.append("prompt", gradePrompt)
+          formData.append("grade", selectedGrade)
+        }
+      }
 
       console.log("[v0] Sending request to webhook...")
 
@@ -214,6 +236,27 @@ export default function ImageTool({ userId, credits = 0, mode }: ImageToolProps)
           <CardDescription>{texts.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Grade Selector - Only for Poster Mode */}
+          {isPosterMode && (
+            <div className="space-y-2">
+              <Label htmlFor="grade-select">اختر الصف الدراسي</Label>
+              <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+                <SelectTrigger id="grade-select" className="w-full">
+                  <SelectValue placeholder="اختر الصف" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">الصف الأول - تصميم بسيط وملون</SelectItem>
+                  <SelectItem value="2">الصف الثاني - تصميم جذاب ومرح</SelectItem>
+                  <SelectItem value="3">الصف الثالث - تصميم متوازن ومنظم</SelectItem>
+                  <SelectItem value="4">الصف الرابع - تصميم احترافي منظم</SelectItem>
+                  <SelectItem value="5">الصف الخامس - تصميم متقدم ومتطور</SelectItem>
+                  <SelectItem value="6">الصف السادس - تصميم احترافي متكامل</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">سيتم تصميم الملصق بما يناسب مستوى الصف المختار</p>
+            </div>
+          )}
+          
           {/* Upload Area */}
           {!selectedFile && (
             <div

@@ -1,7 +1,75 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { GoogleGenerativeAI } from "@google/generative-ai"
 
-const WEBHOOK_URL = "https://karim.n8nkk.tech/webhook/c924151b-1474-4cf7-af1b-48d9cdb85aac"
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+
+const MODEL_ANALYZE = "models/gemini-2.5-flash"           // vision/text analysis
+const MODEL_POSTER  = "models/gemini-3-pro-image-preview" // Nano Banana Pro - image generation
+
+
+const ANALYSIS_PROMPT = `You are an educational design assistant helping first grade teachers digitize their hand-sketched posters and exercises.
+
+Analyze the uploaded image and extract:
+
+1. **All text content**: Extract every word, phrase, title, and label exactly as written, preserving spelling and capitalization.
+
+2. **Structure and layout**: Describe the visual hierarchy and organization including:
+   - Main title/heading
+   - Subheadings
+   - Lists (numbered or bulleted)
+   - Sections or columns
+   - Any special formatting (bold, underlined, circled items)
+   - Position of elements (top, center, left, right)
+
+3. **Visual elements**: Note any:
+   - Drawings, illustrations, or icons
+   - Shapes or borders
+   - Colors used
+   - Arrows or connectors
+
+4. **Educational context**: Identify:
+   - Subject matter (math, reading, science, etc.)
+   - Type of content (worksheet, poster, flashcard, etc.)
+   - Grade-appropriate design elements
+
+Provide the output in this JSON format:
+{
+  "title": "main title",
+  "content": "all extracted text",
+  "structure": "detailed description of layout",
+  "visual_elements": "description of drawings and decorations",
+  "educational_type": "subject and content type",
+  "design_notes": "suggestions for professional redesign"
+}`
+
+function buildPosterPrompt(analysisText: string, gradePrompt: string): string {
+  return `PROMPT
+
+STRICT RULE (VERY IMPORTANT):
+Use ONLY the text contained in the provided content, written in Arabic.
+❌ Do NOT add, rewrite, simplify, translate, explain, or invent any new words or sentences.
+❌ Do NOT add titles, labels, examples, or decorations containing text that is not already present in the content.
+✅ You may only visually style, position, and illustrate the existing Arabic text.
+
+
+Content and structure:
+${analysisText}
+
+Design requirements:
+${gradePrompt}
+
+
+Final result:
+
+A professional, eye-catching classroom poster that helps first-grade children easily read and understand the original Arabic content, using visuals only for support.
+
+
+Adapt it for A4 vs A3 print
+
+Add right-to-left (RTL) layout guidance explicitly for Arabic typography`
+}
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,14 +88,14 @@ export async function POST(request: NextRequest) {
     console.log("[API] User authenticated:", user.id)
 
     const formData = await request.formData()
-    const mode = formData.get("mode") as string || "poster"
+    const imageFile = formData.get("image") as File | null
+    const gradePrompt = (formData.get("prompt") as string) || ""
 
-    // Define costs
-    const COST_PER_ACTION = {
-      poster: 1,
-      watermark: 1 // You can change this to 2, 3, etc.
+    if (!imageFile) {
+      return NextResponse.json({ error: "No image provided" }, { status: 400 })
     }
-    const cost = COST_PER_ACTION[mode as keyof typeof COST_PER_ACTION] || 1
+
+    const cost = 1
 
     // Check credits
     const { data: profile, error: profileError } = await supabase
@@ -42,120 +110,115 @@ export async function POST(request: NextRequest) {
     }
 
     if (!profile || profile.credits < cost) {
-      console.log("[API] Insufficient credits. User has:", profile?.credits, "needs:", cost)
       return NextResponse.json({ error: `Insufficient credits. You need ${cost} credits.` }, { status: 403 })
     }
-    
-    console.log(`[API] User has ${profile.credits} credits, proceeding with ${mode} (cost: ${cost})`)
-    console.log(`[API] Forwarding request to n8n webhook (Mode: ${mode})...`)
 
-    const response = await fetch(WEBHOOK_URL, {
-      method: "POST",
-      body: formData,
-    })
+    console.log(`[API] User has ${profile.credits} credits, proceeding (cost: ${cost})`)
 
-    console.log("[API] n8n response status:", response.status)
-    
-    const contentType = response.headers.get("content-type")
-    console.log("[API] n8n content-type:", contentType)
+    // Convert image to base64
+    const imageBuffer = await imageFile.arrayBuffer()
+    const imageBase64 = Buffer.from(imageBuffer).toString("base64")
+    const mimeType = (imageFile.type || "image/jpeg") as string
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: `Webhook failed with status: ${response.status}` },
-        { status: response.status }
-      )
-    }
-    
-    // Get the response body as a blob/buffer
-    const blob = await response.blob()
-    console.log("[API] n8n response size:", blob.size)
+    let resultImageBase64: string
+    let resultMimeType: string
 
-    // Check if n8n returned JSON (metadata) instead of the image
-    if (contentType && contentType.includes("application/json")) {
-      const text = await blob.text()
-      try {
-        const json = JSON.parse(text)
-        console.log("[API] n8n returned JSON:", json)
-        
-        // Check for the specific metadata signature
-        if (json.fileExtension && json.mimeType && !json.data && !json.image) {
-           return NextResponse.json(
-              { error: "n8n Error: The webhook returned file metadata instead of the image. Please set 'Respond With' to 'Binary' in your n8n Webhook node." },
-              { status: 500 }
-          )
-        }
-        
-        // If it's a generic error
-        if (json.error || json.message) {
-           return NextResponse.json(
-              { error: json.error || json.message },
-              { status: 500 }
-          )
-        }
-      } catch (e) {
-        console.error("Error parsing JSON response:", e)
-      }
-    }
+    // Step 1: Analyze the image
+      console.log("[API] Step 1: Analyzing image with", MODEL_ANALYZE)
+      const analyzeModel = genAI.getGenerativeModel({ model: MODEL_ANALYZE })
 
-    // Upload to Supabase Storage
-    const filename = `${user.id}/${Date.now()}.png`
-    const { data: uploadData, error: uploadError } = await supabase
-      .storage
-      .from('posters')
-      .upload(filename, blob, {
-        contentType: contentType || 'image/png',
-        upsert: false
+      const analysisResult = await analyzeModel.generateContent({
+        contents: [{
+          role: "user",
+          parts: [
+            { text: ANALYSIS_PROMPT },
+            { inlineData: { mimeType, data: imageBase64 } },
+          ],
+        }],
       })
 
+      const analysisText = analysisResult.response.candidates?.[0]?.content?.parts
+        ?.find((p: { text?: string }) => p.text)?.text ?? ""
+
+      if (!analysisText) {
+        return NextResponse.json({ error: "Failed to analyze the image. Please try again." }, { status: 500 })
+      }
+
+      console.log("[API] Step 1 complete. Analysis length:", analysisText.length)
+
+      // Step 2: Generate the poster image from analysis
+      console.log("[API] Step 2: Generating poster with", MODEL_POSTER)
+      const generateModel = genAI.getGenerativeModel({ model: MODEL_POSTER })
+
+      const generateResult = await generateModel.generateContent({
+        contents: [{
+          role: "user",
+          parts: [{ text: buildPosterPrompt(analysisText, gradePrompt) }],
+        }],
+        // @ts-expect-error: responseModalities not yet in SDK types
+        generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
+      })
+
+      const imagePart = generateResult.response.candidates?.[0]?.content?.parts
+        ?.find((p: { inlineData?: { mimeType: string; data: string } }) => p.inlineData)
+
+      if (!imagePart?.inlineData) {
+        console.error("[API] No image in generation response. Parts:", JSON.stringify(
+          generateResult.response.candidates?.[0]?.content?.parts
+        ))
+        return NextResponse.json({ error: "Gemini did not return an image. Please try again." }, { status: 500 })
+      }
+
+      resultImageBase64 = imagePart.inlineData.data
+      resultMimeType = imagePart.inlineData.mimeType || "image/png"
+      console.log("[API] Step 2 complete. Image size (base64):", resultImageBase64.length)
+
+    // Upload to Supabase Storage
+    const generatedBuffer = Buffer.from(resultImageBase64, "base64")
+    const blob = new Blob([generatedBuffer], { type: resultMimeType })
+    const filename = `${user.id}/${Date.now()}.png`
+
+    const { error: uploadError } = await supabase.storage
+      .from("posters")
+      .upload(filename, blob, { contentType: resultMimeType, upsert: false })
+
     if (uploadError) {
-        console.error("[API] Supabase upload error:", uploadError)
-        return NextResponse.json({ error: "Failed to upload image", details: uploadError.message }, { status: 500 })
-    } else {
-        console.log("[API] Upload successful:", filename)
-        // Get Public URL
-        const { data: { publicUrl } } = supabase
-          .storage
-          .from('posters')
-          .getPublicUrl(filename)
+      console.error("[API] Supabase upload error:", uploadError)
+      return NextResponse.json({ error: "Failed to upload image", details: uploadError.message }, { status: 500 })
+    }
 
-        console.log("[API] Public URL:", publicUrl)
+    const { data: { publicUrl } } = supabase.storage.from("posters").getPublicUrl(filename)
+    console.log("[API] Public URL:", publicUrl)
 
-        // Save to history
-        const { error: insertError } = await supabase.from('generations').insert({
-            user_id: user.id,
-            image_url: publicUrl,
-            prompt: mode === 'watermark' ? 'Watermark Removal' : 'Generated Poster'
-        })
+    // Save to history
+    const { error: insertError } = await supabase.from("generations").insert({
+      user_id: user.id,
+      image_url: publicUrl,
+      prompt: "Generated Poster",
+    })
 
-        if (insertError) {
-          console.error("[API] Failed to save to history:", insertError)
-          // Don't fail the request if history insert fails
-        }
+    if (insertError) {
+      console.error("[API] Failed to save to history:", insertError)
     }
 
     // Deduct credit
     const { error: rpcError } = await supabase.rpc("decrement_credits", { user_id: user.id, amount: cost })
-    
+
     if (rpcError) {
       console.error("[API] Failed to decrement credits:", rpcError)
       return NextResponse.json({ error: "Failed to deduct credits", details: rpcError.message }, { status: 500 })
     }
 
-    console.log("[API] Credits decremented successfully")
+    console.log("[API] Credits decremented. Returning image.")
 
-    // Return the response with the correct content type
     return new NextResponse(blob, {
       status: 200,
-      headers: {
-        "Content-Type": contentType || "application/octet-stream",
-      },
+      headers: { "Content-Type": resultMimeType },
     })
+
   } catch (error) {
-    console.error("[API] Error forwarding request:", error)
+    console.error("[API] Error:", error)
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
-    return NextResponse.json(
-      { error: "Internal Server Error", details: errorMessage },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Internal Server Error", details: errorMessage }, { status: 500 })
   }
 }

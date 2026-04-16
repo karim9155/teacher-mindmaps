@@ -5,7 +5,6 @@ import { CreditCard, History } from "lucide-react"
 import LogoutButton from "@/components/logout-button"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { Badge } from "@/components/ui/badge"
 
@@ -61,18 +60,9 @@ export default async function Dashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-12">
-        <Tabs defaultValue="poster" className="w-full max-w-4xl mx-auto" dir="rtl">
-          <TabsList className="grid w-full grid-cols-2 mb-8">
-            <TabsTrigger value="poster">مصمم الملصقات</TabsTrigger>
-            <TabsTrigger value="watermark">إزالة العلامة المائية</TabsTrigger>
-          </TabsList>
-          <TabsContent value="poster">
-            <ImageTool userId={user.id} credits={profile?.credits ?? 0} mode="poster" />
-          </TabsContent>
-          <TabsContent value="watermark">
-            <ImageTool userId={user.id} credits={profile?.credits ?? 0} mode="watermark" />
-          </TabsContent>
-        </Tabs>
+        <div className="w-full max-w-4xl mx-auto">
+          <ImageTool userId={user.id} credits={profile?.credits ?? 0} mode="poster" />
+        </div>
       </main>
 
       <footer className="border-t border-border mt-20 py-8">

@@ -14,7 +14,7 @@ import Link from "next/link"
 const WEBHOOK_URL = "/api/upload"
 
 type UploadStatus = "idle" | "uploading" | "success" | "error"
-export type ToolMode = "poster" | "watermark"
+export type ToolMode = "poster"
 
 // Grade-specific prompts with varying complexity
 const GRADE_PROMPTS = {
@@ -41,27 +41,18 @@ export default function ImageTool({ userId, credits = 0, mode }: ImageToolProps)
   const [isDragging, setIsDragging] = useState(false)
   const [selectedGrade, setSelectedGrade] = useState<string>("3") // Default to grade 3
 
-  const isPosterMode = mode === "poster"
-  
   const texts = {
-    title: isPosterMode ? "ارفع ملصقك المرسوم يدوياً" : "إزالة العلامة المائية",
-    description: isPosterMode 
-      ? "قم بتحميل صورة لملصقك أو تمرينك المرسوم يدوياً، وسنحوله إلى تصميم احترافي" 
-      : "قم بتحميل الصورة التي تحتوي على علامة مائية وسنقوم بإزالتها لك",
-    uploadButton: isPosterMode ? "تحويل الملصق" : "إزالة العلامة المائية",
-    successMessage: isPosterMode ? "تم تحويل ملصقك بنجاح!" : "تمت إزالة العلامة المائية بنجاح!",
-    resultLabel: isPosterMode ? "الملصق المصمم" : "الصورة النظيفة",
-    downloadButton: isPosterMode ? "تحميل الملصق المصمم" : "تحميل الصورة",
-    steps: isPosterMode ? [
+    title: "ارفع ملصقك المرسوم يدوياً",
+    description: "قم بتحميل صورة لملصقك أو تمرينك المرسوم يدوياً، وسنحوله إلى تصميم احترافي",
+    uploadButton: "تحويل الملصق",
+    successMessage: "تم تحويل ملصقك بنجاح!",
+    resultLabel: "الملصق المصمم",
+    downloadButton: "تحميل الملصق المصمم",
+    steps: [
       "التقط صورة واضحة لملصقك أو تمرينك المرسوم يدوياً",
       "قم برفع الصورة باستخدام النموذج أعلاه",
       "سيقوم الذكاء الاصطناعي باستخراج النص وإعادة إنشائه كتصميم احترافي",
       "حمل ملصقك المصمم بشكل جميل جاهزاً للطباعة أو المشاركة"
-    ] : [
-      "اختر الصورة التي تريد إزالة العلامة المائية منها",
-      "قم برفع الصورة باستخدام النموذج أعلاه",
-      "سيقوم الذكاء الاصطناعي بمعالجة الصورة وإزالة العلامات المائية",
-      "حمل صورتك النظيفة بجودة عالية"
     ]
   }
 
@@ -124,7 +115,7 @@ export default function ImageTool({ userId, credits = 0, mode }: ImageToolProps)
       if (userId) formData.append("userId", userId)
       
       // Add grade-specific prompt for poster mode
-      if (isPosterMode && selectedGrade) {
+      if (selectedGrade) {
         const gradePrompt = GRADE_PROMPTS[selectedGrade as keyof typeof GRADE_PROMPTS]
         if (gradePrompt) {
           formData.append("prompt", gradePrompt)
@@ -237,7 +228,7 @@ export default function ImageTool({ userId, credits = 0, mode }: ImageToolProps)
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Grade Selector - Only for Poster Mode */}
-          {isPosterMode && (
+          {(
             <div className="space-y-2">
               <Label htmlFor="grade-select">اختر الصف الدراسي</Label>
               <Select value={selectedGrade} onValueChange={setSelectedGrade}>

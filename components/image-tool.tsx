@@ -40,6 +40,7 @@ export default function ImageTool({ userId, credits = 0, mode }: ImageToolProps)
   const [errorMessage, setErrorMessage] = useState<string>("")
   const [isDragging, setIsDragging] = useState(false)
   const [selectedGrade, setSelectedGrade] = useState<string>("3") // Default to grade 3
+  const [selectedResolution, setSelectedResolution] = useState<string>("16:9")
 
   const texts = {
     title: "ارفع ملصقك المرسوم يدوياً",
@@ -114,7 +115,7 @@ export default function ImageTool({ userId, credits = 0, mode }: ImageToolProps)
       formData.append("mode", mode) // Send the mode to the API
       if (userId) formData.append("userId", userId)
       
-      // Add grade-specific prompt for poster mode
+      // Add grade-specific prompt and resolution
       if (selectedGrade) {
         const gradePrompt = GRADE_PROMPTS[selectedGrade as keyof typeof GRADE_PROMPTS]
         if (gradePrompt) {
@@ -122,6 +123,7 @@ export default function ImageTool({ userId, credits = 0, mode }: ImageToolProps)
           formData.append("grade", selectedGrade)
         }
       }
+      formData.append("resolution", selectedResolution)
 
       console.log("[v0] Sending request to webhook...")
 
@@ -227,8 +229,8 @@ export default function ImageTool({ userId, credits = 0, mode }: ImageToolProps)
           <CardDescription>{texts.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Grade Selector - Only for Poster Mode */}
-          {(
+          {/* Grade & Resolution selectors */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="grade-select">اختر الصف الدراسي</Label>
               <Select value={selectedGrade} onValueChange={setSelectedGrade}>
@@ -246,7 +248,21 @@ export default function ImageTool({ userId, credits = 0, mode }: ImageToolProps)
               </Select>
               <p className="text-xs text-muted-foreground">سيتم تصميم الملصق بما يناسب مستوى الصف المختار</p>
             </div>
-          )}
+
+            <div className="space-y-2">
+              <Label htmlFor="resolution-select">نسبة العرض إلى الارتفاع</Label>
+              <Select value={selectedResolution} onValueChange={setSelectedResolution}>
+                <SelectTrigger id="resolution-select" className="w-full">
+                  <SelectValue placeholder="اختر النسبة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="16:9">16:9 — أفقي (شاشة / عرض)</SelectItem>
+                  <SelectItem value="9:16">9:16 — عمودي (طباعة / هاتف)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">اختر نسبة تناسب طريقة العرض أو الطباعة</p>
+            </div>
+          </div>
           
           {/* Upload Area */}
           {!selectedFile && (

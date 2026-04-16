@@ -43,7 +43,12 @@ Provide the output in this JSON format:
   "design_notes": "suggestions for professional redesign"
 }`
 
-function buildPosterPrompt(analysisText: string, gradePrompt: string): string {
+function buildPosterPrompt(analysisText: string, gradePrompt: string, resolution: string): string {
+  const isLandscape = resolution === "16:9"
+  const orientationGuide = isLandscape
+    ? "ORIENTATION: Landscape (16:9 widescreen). Design for horizontal display — wide layout, content spread left to right, suitable for projectors and screens."
+    : "ORIENTATION: Portrait (9:16 vertical). Design for vertical display — tall layout, content flows top to bottom, suitable for printing and mobile."
+
   return `PROMPT
 
 STRICT RULE (VERY IMPORTANT):
@@ -59,13 +64,11 @@ ${analysisText}
 Design requirements:
 ${gradePrompt}
 
+${orientationGuide}
 
 Final result:
 
 A professional, eye-catching classroom poster that helps first-grade children easily read and understand the original Arabic content, using visuals only for support.
-
-
-Adapt it for A4 vs A3 print
 
 Add right-to-left (RTL) layout guidance explicitly for Arabic typography`
 }
@@ -90,6 +93,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const imageFile = formData.get("image") as File | null
     const gradePrompt = (formData.get("prompt") as string) || ""
+    const resolution = (formData.get("resolution") as string) || "16:9"
 
     if (!imageFile) {
       return NextResponse.json({ error: "No image provided" }, { status: 400 })
@@ -153,7 +157,7 @@ export async function POST(request: NextRequest) {
       const generateResult = await generateModel.generateContent({
         contents: [{
           role: "user",
-          parts: [{ text: buildPosterPrompt(analysisText, gradePrompt) }],
+          parts: [{ text: buildPosterPrompt(analysisText, gradePrompt, resolution) }],
         }],
         // @ts-expect-error: responseModalities not yet in SDK types
         generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
